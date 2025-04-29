@@ -1,5 +1,5 @@
 import requests
-from flask import Flask
+from flask import Flask, request
 
 app = Flask(__name__)
 teams_data = {}
@@ -22,10 +22,11 @@ def get_pokemon_data(pokemon_name):
 
 @app.route('/api/teams', methods=['POST'])
 def create_all_teams_pokemons():
-    pokemons_teams_id = {
-        "1": ["blastoise", "pikachu"],
-        "2": ["blastoise", "pikachu", "venusaur", "charizard", "lapras", "psyduck"] }
-    
+    pokemons_teams_id = request.get_json()
+
+    if not pokemons_teams_id:
+        return {"message": "Envie os times no formato {'time_id': ['pokemon1', 'pokemon2']}"}, 400
+
     for team_id, pokemon_name in pokemons_teams_id.items():
         teams_pokemons = []
 
@@ -43,26 +44,29 @@ def create_all_teams_pokemons():
         print(teams_data[team_id])
     return ({"message": "Times criados com sucesso!", "teams": teams_data}), 201
 
+
 @app.route('/api/teams', methods=['GET'])
 def get_all_teams():
     return teams_data
 
+
 @app.route('/api/teams/<user>')
-def get_team1_pokemons_user(user):
-    if "1" not in teams_data:
-        return {"error": "Time não encontrado"}, 404
+def get_user_teams(user):
+    user_teams = {}
     
-    team_1_data = teams_data["1"]
+    for team_id, team_data in teams_data.items():
+        if team_data["owner"] == user: 
+            user_teams[team_id] = {
+                "pokemons": team_data["pokemons"]
+            }
+    
+    if not user_teams:
+        return {"error": f"Nenhum time encontrado para o usuário {user}"}, 404
     
     return {
-        "owner": team_1_data["owner"], 
-        "pokemons": team_1_data["pokemons"]  
+        "owner": user,
+        "teams": user_teams
     }
 
 if __name__ == '__main__':
-    get_pokemon_data(pokemon_name=list)
-    create_all_teams_pokemons()
-    get_all_teams()
-    get_team1_pokemons_user(user=str)
-
     app.run(debug=True)
